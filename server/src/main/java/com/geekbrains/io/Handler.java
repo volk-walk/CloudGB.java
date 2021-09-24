@@ -12,8 +12,8 @@ import java.nio.file.Paths;
 @Slf4j
 public class Handler implements Runnable {
     private static final int buffer_size = 256;
-    private static final String Root = "server/root";
-    private static final byte [] buffer = new byte[buffer_size];
+    private final String Root = "server/root";
+    private final byte [] buffer = new byte[buffer_size];
     private final Socket socket;
 
 

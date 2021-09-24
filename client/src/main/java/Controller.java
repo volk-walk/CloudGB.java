@@ -39,15 +39,20 @@ public class Controller implements Initializable {
 
     private void sendFile(String fileName) throws IOException {
         Path file = Paths.get(Root, fileName);
-        long size = Files.size(file);
-        os.writeUTF(fileName);
-        os.writeLong(size);
-        InputStream fileStream = Files.newInputStream(file);
-        int read;
-        while ((read=fileStream.read(buffer))!=-1){
-            os.write(buffer,0,read);
+        if (Files.exists(file)) {
+            long size = Files.size(file);
+            os.writeUTF(fileName);
+            os.writeLong(size);
+            InputStream fileStream = Files.newInputStream(file);
+            int read;
+            while ((read = fileStream.read(buffer)) != -1) {
+                os.write(buffer, 0, read);
+            }
+            os.flush();
+        }else {
+            os.writeUTF(fileName);
+            os.flush();
         }
-        os.flush();
     }
 
     @Override
@@ -63,7 +68,7 @@ public class Controller implements Initializable {
                     while (true) {
                         String msg = is.readUTF();
                         log.debug("received: {}", msg);
-                        Platform.runLater(()->listView.getItems().add(msg));
+                        Platform.runLater(()->input.setText(msg));
                     }
                 }catch (Exception e){
                     log.error("exception while read from input stream");
