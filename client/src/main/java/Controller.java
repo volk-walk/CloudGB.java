@@ -1,17 +1,24 @@
+import com.geekbrains.Command;
+import com.geekbrains.FileMessage;
+import com.geekbrains.List_Request;
+import com.geekbrains.List_Response;
+import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
+import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.Initializable;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
-import javafx.scene.input.MouseEvent;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.*;
 import java.net.Socket;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
@@ -23,30 +30,23 @@ public class Controller implements Initializable {
     private static byte [] buffer= new byte[1024];
     public TextField input;
     public ListView <String> listView;
-    private DataInputStream is;
-    private DataOutputStream os;
+    private ObjectDecoderInputStream is;
+    private ObjectEncoderOutputStream os;
 
     public void send(ActionEvent actionEvent) throws Exception {
 
 
         String fileName = input.getText();
         input.clear();
-        sendFile(fileName);
-
+//        sendFile(fileName);
+        os.writeObject(new List_Request());
 
 
     }
 
     private void sendFile(String fileName) throws IOException {
         Path file = Paths.get(Root, fileName);
-        long size = Files.size(file);
-        os.writeUTF(fileName);
-        os.writeLong(size);
-        InputStream fileStream = Files.newInputStream(file);
-        int read;
-        while ((read=fileStream.read(buffer))!=-1){
-            os.write(buffer,0,read);
-        }
+        os.writeObject(new FileMessage(file));
         os.flush();
     }
 
@@ -56,14 +56,17 @@ public class Controller implements Initializable {
         try {
             fileView();
             Socket socket = new Socket("localhost",8189);
-            is=new DataInputStream(socket.getInputStream());
-            os=new DataOutputStream(socket.getOutputStream());
+            os=new ObjectEncoderOutputStream(socket.getOutputStream());
+            is=new ObjectDecoderInputStream(socket.getInputStream());
             Thread deamon = new Thread(()->{
                 try {
                     while (true) {
-                        String msg = is.readUTF();
-                        log.debug("received: {}", msg);
-                        Platform.runLater(()->listView.getItems().add(msg));
+                        Command cmd = (Command) is.readObject();
+                       switch (cmd.getType()){
+                           case LIST_RESPONSE:{
+                               listFile(cmd);
+                           }
+                       }
                     }
                 }catch (Exception e){
                     log.error("exception while read from input stream");
@@ -99,7 +102,18 @@ public class Controller implements Initializable {
             input.setText(click);
         });
     }
+    private void listFile (Command cmd) throws IOException {
+            List_Response listResponse = (List_Response) cmd;
+            List<String> listFile = listResponse.getBuf();
+            Platform.runLater(() -> {
+                listView.getItems().clear();
+                for (int i = 0; i < listFile.size(); i++) {
+                    listView.getItems().add(listFile.get(i));
+                }
+            });
 
 
+        }
+    }
 
-}
+
