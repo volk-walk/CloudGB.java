@@ -9,9 +9,7 @@ import java.util.stream.Collectors;
 
 public class List_Response extends Command {
 
-    public List<String> getBuf() {
-        return buf;
-    }
+
 
     private final List <String> buf;
 
@@ -22,4 +20,7 @@ public class List_Response extends Command {
         type = CommandType.LIST_RESPONSE;
     }
 
+    public List<String> getBuf() {
+        return buf;
+    }
 }

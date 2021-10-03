@@ -1,7 +1,4 @@
-import com.geekbrains.Command;
-import com.geekbrains.FileMessage;
-import com.geekbrains.List_Request;
-import com.geekbrains.List_Response;
+import com.geekbrains.*;
 import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
 import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 import javafx.application.Platform;
@@ -26,45 +23,56 @@ import java.util.stream.Collectors;
 public class Controller implements Initializable {
 
 
-    private static String Root = "client/root";
     private static byte [] buffer= new byte[1024];
-    public TextField input;
-    public ListView <String> listView;
+    public TextField clientPath;
+    public TextField serverPath;
+    public ListView <String> clientView;
+    public ListView <String> serverView;
     private ObjectDecoderInputStream is;
     private ObjectEncoderOutputStream os;
-
-    public void send(ActionEvent actionEvent) throws Exception {
-
-
-        String fileName = input.getText();
-        input.clear();
-//        sendFile(fileName);
-        os.writeObject(new List_Request());
+    private Path dir;
 
 
-    }
 
-    private void sendFile(String fileName) throws IOException {
-        Path file = Paths.get(Root, fileName);
-        os.writeObject(new FileMessage(file));
-        os.flush();
-    }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
 
         try {
-            fileView();
+            dir= Paths.get("client","root");
             Socket socket = new Socket("localhost",8189);
             os=new ObjectEncoderOutputStream(socket.getOutputStream());
             is=new ObjectDecoderInputStream(socket.getInputStream());
+
+            clientView_w();
+            navigation();
+
             Thread deamon = new Thread(()->{
                 try {
                     while (true) {
                         Command cmd = (Command) is.readObject();
+                        log.debug("received: {}",cmd);
                        switch (cmd.getType()){
                            case LIST_RESPONSE:{
-                               listFile(cmd);
+                               List_Response response = (List_Response) cmd;
+                               List<String> name = response.getBuf();
+                               serverView_w(name);
+                               break;
+                           }
+                           case PATH_RESPONSE:{
+                               PathResponse pathResponse = (PathResponse) cmd;
+                               String path = pathResponse.getPath();
+                               Platform.runLater(()->{
+                                   serverPath.setText(path);
+
+                               });
+                               break;
+                           }
+                           case FILE_MESSAGE:{
+                               FileMessage msg = (FileMessage) cmd;
+                               Files.write(dir.resolve(msg.getName()), msg.getBytes());
+                               clientView_w();
+                               break;
                            }
                        }
                     }
@@ -78,41 +86,55 @@ public class Controller implements Initializable {
         } catch (IOException ioException) {
             log.error("e= ",ioException);
         }
-//        Пытался сделать спомощью этих методов(как было в прошлых уроках сетевой чат), но наткнулся на ошибку которую так и не понял как устранить
-//        File show = new File(Root);
-//        for (File f: show.listFiles()){
-//            listView.getItems().add(f.toString());
-//        }
 
     }
 
-//    public void click(MouseEvent mouseEvent) {
-//        String clicker = listView.getSelectionModel().getSelectedItem();
-//        input.setText(clicker);
-//    }
+    private void clientView_w () throws IOException {
 
-    private void fileView () throws IOException {
-
-        listView.getItems().clear();
-        listView.getItems().addAll(
-                Files.list(Paths.get(Root)).map(p->p.getFileName().toString()).collect(Collectors.toList())
-        );
-        listView.setOnMouseClicked(e->{
-            String click = listView.getSelectionModel().getSelectedItem();
-            input.setText(click);
+        clientPath.setText(dir.toString());
+        List<String> names = Files.list(dir).map(p->p.getFileName().toString())
+                .collect(Collectors.toList());
+        Platform.runLater(()->{
+            clientView.getItems().clear();
+            clientView.getItems().addAll(names);
         });
     }
-    private void listFile (Command cmd) throws IOException {
-            List_Response listResponse = (List_Response) cmd;
-            List<String> listFile = listResponse.getBuf();
-            Platform.runLater(() -> {
-                listView.getItems().clear();
-                for (int i = 0; i < listFile.size(); i++) {
-                    listView.getItems().add(listFile.get(i));
+    private void serverView_w (List<String> names) {
+
+        Platform.runLater(()->{
+            serverView.getItems().clear();
+            serverView.getItems().addAll(names);
+        });
+
+        }
+
+        private void navigation (){
+        clientView.setOnMouseClicked(e->{
+            if(e.getClickCount()==2){
+                String name2 = clientView.getSelectionModel().getSelectedItem();
+                Path newPath = dir.resolve(name2);
+                if(Files.isDirectory(newPath)){
+                    dir=newPath;
+                    try {
+                        clientView_w();
+                    } catch (IOException ioException) {
+                        ioException.printStackTrace();
+                    }
                 }
-            });
+            }
+        });
 
-
+        serverView.setOnMouseClicked(e->{
+            if(e.getClickCount()==2){
+                String name2 = serverView.getSelectionModel().getSelectedItem();
+                try {
+                    os.writeObject(new PathInRequest(name2));
+                    os.flush();
+                } catch (IOException ioException) {
+                    ioException.printStackTrace();
+                }
+            }
+        });
         }
     }
 
