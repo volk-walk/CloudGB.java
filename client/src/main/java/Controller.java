@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.PseudoColumnUsage;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
@@ -35,11 +36,13 @@ public class Controller implements Initializable {
 
 
 
+
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
 
         try {
-            dir= Paths.get("client","root");
+            dir = Paths.get("client","root");
             Socket socket = new Socket("localhost",8189);
             os=new ObjectEncoderOutputStream(socket.getOutputStream());
             is=new ObjectDecoderInputStream(socket.getInputStream());
@@ -86,11 +89,10 @@ public class Controller implements Initializable {
         } catch (IOException ioException) {
             log.error("e= ",ioException);
         }
-
     }
 
     private void clientView_w () throws IOException {
-
+        dir = Paths.get("client","root");
         clientPath.setText(dir.toString());
         List<String> names = Files.list(dir).map(p->p.getFileName().toString())
                 .collect(Collectors.toList());
