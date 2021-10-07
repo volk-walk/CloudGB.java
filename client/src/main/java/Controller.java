@@ -31,7 +31,7 @@ public class Controller implements Initializable {
     public ListView <String> serverView;
     private ObjectDecoderInputStream is;
     private ObjectEncoderOutputStream os;
-    private Path dir;
+    private Path dir = Paths.get("client","root");
 
 
 
@@ -42,13 +42,15 @@ public class Controller implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
 
         try {
-            dir = Paths.get("client","root");
+            clientView_w();
+            navigation();
+
+
+
             Socket socket = new Socket("localhost",8189);
             os=new ObjectEncoderOutputStream(socket.getOutputStream());
             is=new ObjectDecoderInputStream(socket.getInputStream());
 
-            clientView_w();
-            navigation();
 
             Thread deamon = new Thread(()->{
                 try {
@@ -92,7 +94,7 @@ public class Controller implements Initializable {
     }
 
     private void clientView_w () throws IOException {
-        dir = Paths.get("client","root");
+
         clientPath.setText(dir.toString());
         List<String> names = Files.list(dir).map(p->p.getFileName().toString())
                 .collect(Collectors.toList());
@@ -138,6 +140,35 @@ public class Controller implements Initializable {
             }
         });
         }
+    public void clientUp(ActionEvent actionEvent) throws IOException {
+        dir = dir.getParent();
+        clientPath.setText(dir.toString());
+        clientView_w();
     }
+
+    public void serverUp(ActionEvent actionEvent) throws Exception {
+        os.writeObject(new PathUpRequest());
+        os.flush();
+    }
+
+    public void download(ActionEvent actionEvent) throws IOException {
+        String dwld = serverView.getSelectionModel().getSelectedItem();
+
+        os.writeObject(new FileRequest(dwld));
+        os.flush();
+
+
+    }
+
+    public void upLoad(ActionEvent actionEvent) throws IOException {
+        String upld = clientView.getSelectionModel().getSelectedItem();
+        FileMessage msg = new FileMessage(dir.resolve(upld));
+
+        os.writeObject(msg);
+        os.flush();
+
+
+    }
+}
 
 
