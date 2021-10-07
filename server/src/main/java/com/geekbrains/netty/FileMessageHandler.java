@@ -16,10 +16,6 @@ public class FileMessageHandler extends SimpleChannelInboundHandler <Command> {
 
     private static Path ROOT = Paths.get("server","root");
 
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        ctx.writeAndFlush(new List_Response(ROOT));
-        ctx.writeAndFlush(new PathResponse(ROOT));
-    }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Command cmd) throws Exception {
