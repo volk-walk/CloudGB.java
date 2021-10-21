@@ -5,7 +5,9 @@ import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.Initializable;
 import javafx.scene.control.ListView;
+import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.*;
@@ -29,11 +31,24 @@ public class Controller implements Initializable {
     public TextField serverPath;
     public ListView <String> clientView;
     public ListView <String> serverView;
+    public TextField loginField;
+    public PasswordField passwordField;
+    public HBox authPanel;
+    public HBox cloudPanel;
     private ObjectDecoderInputStream is;
     private ObjectEncoderOutputStream os;
     private Path dir = Paths.get("client","root");
 
 
+
+    private boolean authenticated;
+    public void setAuthenticated(boolean authenticated){
+        this.authenticated=authenticated;
+        authPanel.setVisible(!authenticated);
+        authPanel.setManaged(!authenticated);
+        cloudPanel.setVisible(authenticated);
+        cloudPanel.setManaged(authenticated);
+    }
 
 
 
@@ -41,53 +56,61 @@ public class Controller implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
 
+        connect();
+        setAuthenticated(false);
+      navigation();
+
+    }
+
+    private void connect (){
         try {
-            clientView_w();
-            navigation();
-
-
 
             Socket socket = new Socket("localhost",8189);
-            os=new ObjectEncoderOutputStream(socket.getOutputStream());
             is=new ObjectDecoderInputStream(socket.getInputStream());
+            os=new ObjectEncoderOutputStream(socket.getOutputStream());
 
 
-            Thread deamon = new Thread(()->{
+            Thread daemon = new Thread(()->{
                 try {
                     while (true) {
                         Command cmd = (Command) is.readObject();
                         log.debug("received: {}",cmd);
-                       switch (cmd.getType()){
-                           case LIST_RESPONSE:{
-                               List_Response response = (List_Response) cmd;
-                               List<String> name = response.getBuf();
-                               serverView_w(name);
-                               break;
-                           }
-                           case PATH_RESPONSE:{
-                               PathResponse pathResponse = (PathResponse) cmd;
-                               String path = pathResponse.getPath();
-                               Platform.runLater(()->{
-                                   serverPath.setText(path);
+                        switch (cmd.getType()){
+                            case LIST_RESPONSE:
+                                List_Response response = (List_Response) cmd;
+                                List<String> name = response.getBuf();
+                                serverView_w(name);
+                                break;
+                            case PATH_RESPONSE:
+                                PathResponse pathResponse = (PathResponse) cmd;
+                                String path = pathResponse.getPath();
+                                Platform.runLater(()->{
+                                    serverPath.setText(path);
 
-                               });
-                               break;
-                           }
-                           case FILE_MESSAGE:{
-                               FileMessage msg = (FileMessage) cmd;
-                               Files.write(dir.resolve(msg.getName()), msg.getBytes());
-                               clientView_w();
-                               break;
-                           }
-                       }
+                                });
+                                break;
+
+                            case FILE_MESSAGE:
+                                FileMessage msg = (FileMessage) cmd;
+                                Files.write(dir.resolve(msg.getName()), msg.getBytes());
+                                clientView_w();
+                                break;
+
+                            case AUTH_RESPONSE:
+                                AuthResponse auth = (AuthResponse) cmd;
+                                if(auth.getStatus()){
+                                    setAuthenticated(auth.getStatus());
+                                }break;
+                        }
                     }
                 }catch (Exception e){
                     log.error("exception while read from input stream");
+                    e.printStackTrace();
                 }
 
             });
-            deamon.setDaemon(true);
-            deamon.start();
+            daemon.setDaemon(true);
+            daemon.start();
         } catch (IOException ioException) {
             log.error("e= ",ioException);
         }
@@ -156,8 +179,6 @@ public class Controller implements Initializable {
 
         os.writeObject(new FileRequest(dwld));
         os.flush();
-
-
     }
 
     public void upLoad(ActionEvent actionEvent) throws IOException {
@@ -167,7 +188,28 @@ public class Controller implements Initializable {
         os.writeObject(msg);
         os.flush();
 
+    }
 
+    public void tryToAuth(ActionEvent actionEvent) {
+        String login = loginField.getText();
+        String pass = passwordField.getText();
+        try {
+            os.writeObject(new AuthRequest(login,pass));
+            os.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void tryToReg(ActionEvent actionEvent) {
+        String login = loginField.getText();
+        String pass = passwordField.getText();
+        try {
+            os.writeObject(new RegRequest(login,pass));
+            os.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
 

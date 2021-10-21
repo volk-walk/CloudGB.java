@@ -48,6 +48,7 @@ public class NettyEchoServer {
     }
 
     public static void main(String[] args) {
+        SQLhandler.connect();
         new NettyEchoServer();
     }
 

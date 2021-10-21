@@ -16,13 +16,17 @@ public class FileMessageHandler extends SimpleChannelInboundHandler <Command> {
 
     private static Path ROOT = Paths.get("server","root");
 
+
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         ctx.writeAndFlush(new List_Response(ROOT));
         ctx.writeAndFlush(new PathResponse(ROOT));
     }
 
+
+
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Command cmd) throws Exception {
+
         log.debug("received: {}",cmd.getType());
         switch (cmd.getType()){
             case FILE_REQUEST:{
@@ -51,7 +55,24 @@ public class FileMessageHandler extends SimpleChannelInboundHandler <Command> {
                     ctx.writeAndFlush(new List_Response(ROOT));
                 }
                 break;
+            case AUTH_REQUEST:
+                AuthRequest request1 = (AuthRequest) cmd;
+                String loginAuth = request1.getLogin();
+                String passAuth = request1.getPass();
+                SQLhandler authorization1 = new SQLhandler();
+                authorization1.authorization(loginAuth,passAuth);
+                ctx.writeAndFlush(new AuthResponse(authorization1.authorization(loginAuth,passAuth)));
+                break;
+            case REG_REQUEST:
+                RegRequest request2 = (RegRequest) cmd;
+                String loginReg = request2.getLogin();
+                String passReg = request2.getPass();
+                SQLhandler authorization2 = new SQLhandler();
+                authorization2.registration(loginReg,passReg);
+                break;
         }
+
+
     }
     public void fileToServer (Command cmd) throws IOException {
         FileMessage fileMessage = (FileMessage) cmd;
