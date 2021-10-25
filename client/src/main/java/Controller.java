@@ -9,6 +9,7 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import lombok.extern.slf4j.Slf4j;
+import netty.NettyClient;
 
 import java.io.*;
 import java.net.Socket;
@@ -31,24 +32,13 @@ public class Controller implements Initializable {
     public TextField serverPath;
     public ListView <String> clientView;
     public ListView <String> serverView;
-    public TextField loginField;
-    public PasswordField passwordField;
     public HBox authPanel;
     public HBox cloudPanel;
     private ObjectDecoderInputStream is;
     private ObjectEncoderOutputStream os;
     private Path dir = Paths.get("client","root");
+    private NettyClient nc;
 
-
-
-    private boolean authenticated;
-    public void setAuthenticated(boolean authenticated){
-        this.authenticated=authenticated;
-        authPanel.setVisible(!authenticated);
-        authPanel.setManaged(!authenticated);
-        cloudPanel.setVisible(authenticated);
-        cloudPanel.setManaged(authenticated);
-    }
 
 
 
@@ -57,24 +47,24 @@ public class Controller implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
 
         connect();
-        setAuthenticated(false);
       navigation();
+        try {
+            clientView_w();
+
+        } catch (IOException ioException) {
+            ioException.printStackTrace();
+        }
+        try {
+            nc.sendCommand(new List_Request());
+        } catch (IOException ioException) {
+            ioException.printStackTrace();
+        }
 
     }
 
     private void connect (){
-        try {
+        nc = NettyClient.getInstance(cmd -> {
 
-            Socket socket = new Socket("localhost",8189);
-            is=new ObjectDecoderInputStream(socket.getInputStream());
-            os=new ObjectEncoderOutputStream(socket.getOutputStream());
-
-
-            Thread daemon = new Thread(()->{
-                try {
-                    while (true) {
-                        Command cmd = (Command) is.readObject();
-                        log.debug("received: {}",cmd);
                         switch (cmd.getType()){
                             case LIST_RESPONSE:
                                 List_Response response = (List_Response) cmd;
@@ -96,25 +86,10 @@ public class Controller implements Initializable {
                                 clientView_w();
                                 break;
 
-                            case AUTH_RESPONSE:
-                                AuthResponse auth = (AuthResponse) cmd;
-                                if(auth.getStatus()){
-                                    setAuthenticated(auth.getStatus());
-                                }break;
                         }
+        });
                     }
-                }catch (Exception e){
-                    log.error("exception while read from input stream");
-                    e.printStackTrace();
-                }
 
-            });
-            daemon.setDaemon(true);
-            daemon.start();
-        } catch (IOException ioException) {
-            log.error("e= ",ioException);
-        }
-    }
 
     private void clientView_w () throws IOException {
 
@@ -154,12 +129,7 @@ public class Controller implements Initializable {
         serverView.setOnMouseClicked(e->{
             if(e.getClickCount()==2){
                 String name2 = serverView.getSelectionModel().getSelectedItem();
-                try {
-                    os.writeObject(new PathInRequest(name2));
-                    os.flush();
-                } catch (IOException ioException) {
-                    ioException.printStackTrace();
-                }
+                nc.sendCommand(new PathInRequest(name2));
             }
         });
         }
@@ -170,47 +140,21 @@ public class Controller implements Initializable {
     }
 
     public void serverUp(ActionEvent actionEvent) throws Exception {
-        os.writeObject(new PathUpRequest());
-        os.flush();
+        nc.sendCommand(new PathUpRequest());
     }
 
     public void download(ActionEvent actionEvent) throws IOException {
         String dwld = serverView.getSelectionModel().getSelectedItem();
 
-        os.writeObject(new FileRequest(dwld));
-        os.flush();
+        nc.sendCommand(new FileMessage(Paths.get(dwld)));
     }
 
     public void upLoad(ActionEvent actionEvent) throws IOException {
         String upld = clientView.getSelectionModel().getSelectedItem();
-        FileMessage msg = new FileMessage(dir.resolve(upld));
-
-        os.writeObject(msg);
-        os.flush();
-
+        nc.sendCommand(new FileMessage(dir.resolve(upld)));
     }
 
-    public void tryToAuth(ActionEvent actionEvent) {
-        String login = loginField.getText();
-        String pass = passwordField.getText();
-        try {
-            os.writeObject(new AuthRequest(login,pass));
-            os.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
-    public void tryToReg(ActionEvent actionEvent) {
-        String login = loginField.getText();
-        String pass = passwordField.getText();
-        try {
-            os.writeObject(new RegRequest(login,pass));
-            os.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 }
 
 

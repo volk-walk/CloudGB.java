@@ -2,31 +2,19 @@
 
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.scene.text.*?>
 
-<AnchorPane prefHeight="479.0" prefWidth="439.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Controller">
-      <HBox fx:id="authPanel">
 
-         <TextField fx:id="loginField" prefHeight="25.0" prefWidth="182.0" promptText="login" HBox.hgrow="ALWAYS" />
-         <PasswordField fx:id="passwordField" prefHeight="25.0" prefWidth="185.0" promptText="password" HBox.hgrow="ALWAYS" />
-         <Button fx:id="go" onAction="#tryToAuth" prefHeight="25.0" prefWidth="72.0" text="go" />
-         <Button fx:id="reg" onAction="#tryToReg" prefHeight="25.0" prefWidth="72.0" text="reg" />
+<AnchorPane prefHeight="381.0" prefWidth="439.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Controller">
 
-      </HBox>
-   <HBox fx:id="cloudPanel" managed="false" visible="false">
-      <ListView fx:id="clientView" layoutX="14.0" layoutY="61.0" prefHeight="389.0" prefWidth="175.0" />
-   <ListView fx:id="serverView" layoutX="249.0" layoutY="61.0" prefHeight="389.0" prefWidth="175.0" />
-   <Button layoutX="194.0" layoutY="150.0" mnemonicParsing="false" onAction="#upLoad" prefHeight="85.0" prefWidth="52.0" text="&gt;">
-      <font>
-         <Font size="25.0" />
-      </font></Button>
-   <Button layoutX="194.0" layoutY="283.0" mnemonicParsing="false" onAction="#download" prefHeight="85.0" prefWidth="52.0" text="&lt;">
-      <font>
-         <Font size="25.0" />
-      </font></Button>
-   <TextField fx:id="clientPath" layoutX="14.0" layoutY="24.0" prefHeight="25.0" prefWidth="136.0" />
-   <TextField fx:id="serverPath" layoutX="249.0" layoutY="24.0" prefHeight="25.0" prefWidth="136.0" />
-   <Button layoutX="150.0" layoutY="24.0" mnemonicParsing="false" onAction="#clientUp" prefHeight="25.0" prefWidth="39.0" text="up" />
-   <Button layoutX="385.0" layoutY="24.0" mnemonicParsing="false" onAction="#serverUp" prefHeight="25.0" prefWidth="39.0" text="up" />
-   </HBox>
+      <ListView fx:id="clientView" layoutX="14.0" layoutY="97.0" prefHeight="268.0" prefWidth="161.0" />
+      <ListView fx:id="serverView" layoutX="268.0" layoutY="97.0" prefHeight="268.0" prefWidth="161.0" />
+      <TextField fx:id="clientPath" layoutX="14.0" layoutY="60.0" prefHeight="25.0" prefWidth="123.0" />
+      <TextField fx:id="serverPath" layoutX="268.0" layoutY="60.0" prefHeight="25.0" prefWidth="123.0" />
+      <Button layoutX="137.0" layoutY="60.0" mnemonicParsing="false" onAction="#clientUp" prefHeight="25.0" prefWidth="38.0" text="up" />
+      <Button layoutX="391.0" layoutY="60.0" mnemonicParsing="false" onAction="#serverUp" prefHeight="25.0" prefWidth="38.0" text="up" />
+      <Button layoutX="194.0" layoutY="138.0" mnemonicParsing="false" onAction="#download" prefHeight="59.0" prefWidth="59.0" text="&lt;" />
+      <Button layoutX="194.0" layoutY="262.0" mnemonicParsing="false" onAction="#upLoad" prefHeight="59.0" prefWidth="59.0" text="&gt;" />
+
 </AnchorPane>
+
+
